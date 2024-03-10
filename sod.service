@@ -1,0 +1,13 @@
+[Unit]
+Description=Simple object detection
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/sod
+Type=simple
+Restart=always
+StandardOutput=append:/var/log/sod_std.log
+StandardError=append:/var/log/sod_err.log
+
+[Install]
+WantedBy=multi-user.target

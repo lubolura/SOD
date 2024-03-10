@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+
+import sys
+import base64
+import cv2
+from jinja2 import Environment
+import sod_detector_yolov4
+import sod_html
+import sod_utils
+import sod_guard
+import sod_settings
+
+try:
+    from flask import Flask, jsonify, render_template, request, make_response, redirect
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR,EVENT_JOB_ADDED
+except Exception as e:
+    sod_utils.debug(f"Cannot import module  {e} \n Try to use : sudo python3.10 -m pip install missing_module", "stderr")
+    sys.exit(1)
+
+
+REGIONS_COLOR = "rgba(164, 221, 249, 0.3)"
+sod_utils.log_running()
+
+
+app = Flask(__name__, static_url_path='')
+global_buffer = None
+
+def init_sod():
+    sod_settings.st = sod_settings.Settings()
+    should_by_showed = sod_utils.can_by_showed() and sod_settings.st.show_image
+    if should_by_showed:
+        sod_utils.debug(f"Camera pictures window will be open.", "stdout")
+    detector = sod_detector_yolov4.Yolov4(sod_settings.st)
+    sod_guard.init_camera_definitions(sod_settings.st)
+    return detector,should_by_showed
+
+def deinit_sod(st,should_be_showed):
+    sod_guard.release_cameras(st)
+    if should_be_showed:
+            cv2.destroyAllWindows()
+
+
+def _guard(st,detector,should_by_showed):
+    st.rounds = st.rounds+1
+    if st.debug_logs:
+        sod_utils.debug(f"Scheduler job _guard #{st.rounds} execute started ","stdout")
+    if sod_guard.guard(st,detector,should_by_showed):
+        if (cv2.waitKey(1) & 0XFF) == ord('x'):
+            pass
+    if st.debug_logs:
+        sod_utils.debug(f"Scheduler job _guard #{st.rounds} execute finished ","stdout")
+    #time.sleep(st.delay_between_samples_secs)
+
+
+@app.route('/set_regions', methods=["GET","POST"])
+def set_regions():
+    camera_name = request.args.get("camera_name", "undefined")
+
+    if camera_name == "undefined":
+        return Environment().from_string(sod_html.HTML_WAIT).render(msg=f"Unknown camera {camera_name}....")
+
+    # POST
+    if request.method == 'POST':
+        if request.is_json:
+            regions = request.json
+
+            #print(regions)
+            if sod_settings.st.store_cfg(camera_name, regions):
+                for cam in sod_settings.st.cams:
+                    if cam["name"] == camera_name:
+                        cam["regions"] = regions
+                        break
+                #return redirect(f"/set_regions?camera_name={camera_name}", code=200)
+                response = make_response(jsonify({"message": "OK.\n New regions were stored into cfg file !"}),200,)
+                response.headers["Content-Type"] = "application/json"
+                return response
+
+        response = make_response(jsonify({"message": "ERROR! \n New config was not stored !"}),400,)
+        response.headers["Content-Type"] = "application/json"
+        return response
+
+    # GET
+    frames_b64 = []
+    try:
+        for cam in sod_settings.st.cams:
+            if cam["name"] == camera_name:
+                cnt = cv2.imencode('.jpg', cam["resized_frame"])[1]
+                frames_b64.append({"frame": base64.b64encode(cnt).decode(), "camera_name": camera_name})
+                return Environment().from_string(sod_html.HTML_SET_REGIONS).render(frame = frames_b64[0],
+                                                                                   size=sod_settings.st.processing_picture_size,
+                                                                                   regions = cam["regions"],
+                                                                                   regions_color = REGIONS_COLOR)
+        return Environment().from_string(sod_html.HTML_WAIT).render(msg=f"Unknown camera {camera_name}....")
+    except:
+        return Environment().from_string(sod_html.HTML_WAIT).render(msg= "Connecting cameras ...")
+
+def get_camera_by_name(camera_name):
+    for cam in sod_settings.st.cams:
+        if cam["name"] == camera_name:
+            return cam
+    return None
+
+def _get_frame(cam):
+    try:
+        cnt = cv2.imencode('.jpg', cam["farme_with_detections_and_regions"])[1]
+        return {"frame": base64.b64encode(cnt).decode(), "camera_name": cam["name"]}
+    except Exception as e:
+        return {"frame": None, "camera_name": cam["name"]}
+
+
+@app.route('/get_frame', methods=["GET"])
+def get_frame():
+    camera_name = request.args.get("camera_name", "undefined")
+    if camera_name != "undefined":
+        cam = get_camera_by_name(camera_name)
+        if cam != None:
+            return _get_frame(cam)
+    return {"frame": None, "camera_name": camera_name}
+
+
+@app.route('/', methods=["GET"])
+def main_page():
+  frames_b64 =[]
+  refresh_rate = 1 if sod_settings.st.delay_between_samples_secs < 1 else sod_settings.st.delay_between_samples_secs
+  try:
+      for cam in sod_settings.st.cams:
+          frames_b64.append(_get_frame(cam))
+      return Environment().from_string(sod_html.HTML_SOD_MAIN).render(frames = frames_b64,
+                                                                      refresh_rate = refresh_rate,
+                                                                      cameras_in_row = sod_settings.st.cameras_in_row)
+  except Exception as e:
+      sod_utils.debug(f"Error generate main web page : {e}", "stderr")
+      return Environment().from_string(sod_html.HTML_WAIT).render(refresh_rate = refresh_rate,msg= "Connecting cameras ...")
+
+
+if __name__ == "__main__":
+    sod_utils.log_running()
+    detector,should_by_showed  = init_sod()
+
+    #while(True):
+    #     _guard(st,detector,should_by_showed)
+
+
+    with app.app_context():
+         scheduler = BackgroundScheduler()
+         scheduler.add_job(_guard, args = [sod_settings.st,detector,should_by_showed],trigger = 'interval', seconds=sod_settings.st.delay_between_samples_secs)
+         scheduler.start()
+
+
+    app.run(host='0.0.0.0', port=5050)
+    deinit_sod(sod_settings.st, should_by_showed)
+
+
