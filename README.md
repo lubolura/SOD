@@ -2,7 +2,9 @@
 simple Stream Object Detection using yolov4 , 
 inspired by https://github.com/montagdude/zoneminder-notifier
 
-The program is created in python. Actively uses YOLOV4 object detection. yolo4 itself is not part of the distribution. The trained model is freely accessible and you have to download it:
+The program is created in python. Actively uses YOLOV4 object detection. 
+
+Yolo4 itself is not part of the distribution. The pre-trained model is freely accessible and you have to download it:
 
 https://github.com/AlexeyAB/darknet/releases/download/yolov4/yolov4.weights
 https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.cfg
@@ -15,25 +17,27 @@ config_path: /usr/share/sod/yolov4/yolov4.cfg
 
 classes_path: /usr/share/sod/coco.names.80
 
-. It is also necessary to have Python installed with the required libraries.
+It is also necessary to have Python3 installed with the required libraries.
 
 Before installation, it is necessary to configure/edit the file
-sod.cfg and set the individual items correctly - see the comment in the sod.cfg file.
+
+sod.cfg 
+
+and set the individual items correctly - see the comments in the sod.cfg file.
 
 Also make sure that the mail server is available.
 
-The program itself is installed on Linux by command
+The program itself is installed on Ubuntu by command
 
 python3 setup.py install
 
-whereby it is necessary to install from the address book in which the source codes themselves are.
+whereby it is necessary to install from the addresary in which the source codes themselves are.
 
 Next, it is possible to check whether the process is running, for example:
 
 systemctl status sod
 
 In case of problems, check the relevant log files - see their definitions in sod.cfg.
-
 
 
 ----------------------------------------------------------------------------------------
