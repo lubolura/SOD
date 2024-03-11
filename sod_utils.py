@@ -5,8 +5,6 @@ import os
 import subprocess
 import platform
 import cv2
-#import pip
-import pkgutil
 from datetime import datetime
 from configparser import NoOptionError
 

@@ -9,8 +9,6 @@
 # http://jinja.pocoo.org/docs/templates/
 #
 
-from jinja2 import Environment
-
 HTML_HEADER = """
         <div class="w3-bar w3-theme-d1">
           <div class="w3-bar-item w3-hover-blue"> S O D </div>
