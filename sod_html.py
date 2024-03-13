@@ -65,9 +65,14 @@ HTML_SOD_MAIN = """
           {% endif %}
                    <div class = "w3-cell w3-padding w3-card  w3-center">   
                       <div class = "w3-row">   
+                      
                           <h1>
                               {{frame['camera_name']}}
                           </h1>
+                          <div class = "frame_datetime">
+                              {{frame['frame_datetime']}}
+                          </div>
+                          
                       </div>
                       <div class = "w3-row">   
                          <img class='visible_frame' id={{frame['camera_name']}} src="data:image/jpeg;base64, {{frame['frame']}}"></img>
@@ -87,6 +92,7 @@ HTML_SOD_MAIN = """
 </body>
 <script>
 const visible_frames = document.getElementsByClassName("visible_frame");
+const frame_datetimes = document.getElementsByClassName("frame_datetime");
 async function fetchFrame(camera_name) {
   const res = await fetch('/get_frame?camera_name='+camera_name);
   const data = await res.json();
@@ -98,6 +104,7 @@ function refreshFrames() {
     for (let i = 0; i < visible_frames.length; i++) {
         fetchFrame(visible_frames[i].id).then(data => {
                   visible_frames[i].src="data:image/jpeg;base64, " + data.frame ;
+                  frame_datetimes[i].innerText = data.frame_datetime ;  
                 }, console.error);
     }
 

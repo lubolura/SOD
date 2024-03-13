@@ -104,9 +104,9 @@ def get_camera_by_name(camera_name):
 def _get_frame(cam):
     try:
         cnt = cv2.imencode('.jpg', cam["farme_with_detections_and_regions"])[1]
-        return {"frame": base64.b64encode(cnt).decode(), "camera_name": cam["name"]}
+        return {"frame": base64.b64encode(cnt).decode(), "camera_name": cam["name"],"frame_datetime" : cam["frame_datetime"]}
     except Exception as e:
-        return {"frame": None, "camera_name": cam["name"]}
+        return {"frame": None, "camera_name": cam["name"],"frame_datetime" : ""}
 
 
 @app.route('/get_frame', methods=["GET"])
@@ -116,7 +116,7 @@ def get_frame():
         cam = get_camera_by_name(camera_name)
         if cam != None:
             return _get_frame(cam)
-    return {"frame": None, "camera_name": camera_name}
+    return {"frame": None, "camera_name": camera_name,"frame_datetime": None}
 
 
 @app.route('/', methods=["GET"])

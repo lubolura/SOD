@@ -52,6 +52,7 @@ def init_camera_definitions(st):
         cam["camera_is_ok"] = False
         cam["detections"] = 0
         cam["count_to_fire_send_emails_when_camera_lost"] = 0
+        cam["frame_datetime"] = None
 
 
 def release_cameras(st):
@@ -173,6 +174,7 @@ def guard(st,detector,should_by_showed):
             frame = cv2.resize(frame, st.processing_picture_size)
             #unmasked_frame[cam["name"]] = frame.copy()
             cam["resized_frame"] = frame
+            cam["frame_datetime"] = sod_utils.get_time()
 
             # frame is ok, camera is ok, lets detect
             detected_classes = []
