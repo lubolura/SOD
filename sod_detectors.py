@@ -15,10 +15,11 @@ import sod_utils
 
 
 
-class Yolov4:
+class Yolo:
     def __init__(self,st,color = (255, 0, 0)):
         self.weights = st.darknet_weights  # loading weights
         self.cfg = st.darknet_config  # loading cfg file
+        self.detector = 'yolov8'
         self.init_yolov4(st)
         self.init_yolov8(st)
         self.color = color
@@ -40,23 +41,23 @@ class Yolov4:
 
 
 
-    def Detect(self,cam,model_type):
+    def Detect(self,cam):
         try:
             regions = cam["regions"]
             # do it with black-out masks
             masked_image = self.mask_regions(cam["resized_frame"].copy(),regions,(0,0,0),1)
 
-            if model_type == 'yolov8':
+            if self.detector == 'yolov8':
                 yolov8_detections = self.yolov8.predict(masked_image)
                 if len(yolov8_detections[0].boxes) > 0 :
-                    frame_with_detection,detected_classes = self.process_detections('8',yolov8_detections, cam["resized_frame"],
+                    frame_with_detection,detected_classes = self.process_detections(yolov8_detections, cam["resized_frame"],
                                                                                        cam["detect_classes_actual"],
                                                                                        cam["confidence_threshold"])
             else:
                 blob = cv2.dnn.blobFromImage(masked_image, 1 / 255, (self.yolov4_size, self.yolov4_size), True, crop=False)
                 self.yolov4.setInput(blob)
                 yolov4_detections = self.yolov4.forward(self.outputs)
-                frame_with_detection,detected_classes = self.process_detections('4',yolov4_detections, cam["resized_frame"],
+                frame_with_detection,detected_classes = self.process_detections(yolov4_detections, cam["resized_frame"],
                                                                                        cam["detect_classes_actual"],
                                                                                        cam["confidence_threshold"])
 
@@ -92,14 +93,14 @@ class Yolov4:
         return out_frame
 
 
-    def process_detections(self, det_type, detections, input_frame, detect_classes, confidence_threshold):
+    def process_detections(self, detections, input_frame, detect_classes, confidence_threshold):
         out_frame = input_frame.copy()
         (H, W) = out_frame.shape[:2]
         boxes = list()
         confidences = list()
         class_ids = list()
         classes = list()
-        if det_type == '4':
+        if self.detector == 'yolov4':
             _detections = []
             for _det in detections:
                 for __det in _det:
@@ -109,7 +110,7 @@ class Yolov4:
 
         for det in _detections:
 
-            if det_type == '4':
+            if self.detector == 'yolov4':
                 _scores = det[5:]
                 class_id = np.argmax(_scores)
                 confidence = _scores[class_id]
@@ -123,7 +124,7 @@ class Yolov4:
 
             # filter for confidence threshold
             if confidence > confidence_threshold:
-                if det_type == '4':
+                if self.detector == 'yolov4':
                     box = det[0:4] * np.array([W, H, W, H])
                     (center_x, center_y, width, height) = box.astype("int")
                     xmin = int(center_x - (width / 2))
