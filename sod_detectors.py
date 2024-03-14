@@ -6,6 +6,7 @@
 # https://github.com/erentknn/yolov4-object-detection
 
 
+from ultralytics import YOLO
 import cv2
 import os
 import numpy as np
@@ -13,13 +14,13 @@ import time
 import sod_utils
 
 
+
 class Yolov4:
     def __init__(self,st,color = (255, 0, 0)):
         self.weights = st.darknet_weights  # loading weights
         self.cfg = st.darknet_config  # loading cfg file
-        self.Neural_Network = cv2.dnn.readNetFromDarknet(self.cfg, self.weights)
-        self.outputs = self.Neural_Network.getUnconnectedOutLayersNames()
-        self.darknet_size = st.darknet_size
+        self.init_yolov4(st)
+        self.init_yolov8(st)
         self.color = color
         if not os.path.isfile(st.darknet_classes):
             sod_utils.debug("Unable to open {:s}.\n".format(st.darknet_classes),"stderr")
@@ -29,20 +30,37 @@ class Yolov4:
                 self.classes = f.read().splitlines()
 
 
+    def init_yolov4(self,st):
+        self.yolov4 = cv2.dnn.readNetFromDarknet(self.cfg, self.weights)
+        self.outputs = self.yolov4.getUnconnectedOutLayersNames()
+        self.yolov4_size = st.darknet_size
+
+    def init_yolov8(self,st):
+        self.yolov8 = YOLO("yolov8n.pt")
+
+
+
     def Detect(self,cam):
         try:
             regions = cam["regions"]
             # do it with black-out masks
             masked_image = self.mask_regions(cam["resized_frame"].copy(),regions,(0,0,0),1)
-            blob = cv2.dnn.blobFromImage(masked_image, 1 / 255, (self.darknet_size, self.darknet_size), True, crop=False)
-            self.Neural_Network.setInput(blob)
+
+            blob = cv2.dnn.blobFromImage(masked_image, 1 / 255, (self.yolov4_size, self.yolov4_size), True, crop=False)
+            self.yolov4.setInput(blob)
             start_time = time.time()
-            detections = self.Neural_Network.forward(self.outputs)
+            yolov4_detections = self.yolov4.forward(self.outputs)
+
+            yolov8_detections = self.yolov8.predict(masked_image)
+            if len(yolov8_detections[0].boxes) > 0 :
+                frame_with_detection,detected_classes = self.process_yolov8_detections(yolov8_detections[0].boxes, cam["resized_frame"],
+                                                                                   cam["detect_classes_actual"],
+                                                                                   cam["confidence_threshold"])
 
             #return back with unmasked regions
-            frame_with_detection,detected_classes = self.process_detections(detections,cam["resized_frame"],
-                                                                            cam["detect_classes_actual"],
-                                                                            cam["confidence_threshold"])
+            #frame_with_detection,detected_classes = self.process_yolov4_detections(yolov4_detections, cam["resized_frame"],
+            #                                                                       cam["detect_classes_actual"],
+            #                                                                       cam["confidence_threshold"])
             frame_with_detections_and_regions = self.mask_regions(frame_with_detection,regions,(100,100,100),0.25)
             return detected_classes, frame_with_detection,frame_with_detections_and_regions
 
@@ -74,7 +92,41 @@ class Yolov4:
         out_frame = cv2.addWeighted(out_frame, alpha, frame_cpy, 1 - alpha, gamma=0)
         return out_frame
 
-    def process_detections(self,layer_outs,input_frame,detect_classes,confidence_threshold):
+    def process_yolov8_detections(self, detections, input_frame, detect_classes, confidence_threshold):
+        out_frame = input_frame.copy()
+        (H, W) = out_frame.shape[:2]
+        boxes = list()
+        confidences = list()
+        class_ids = list()
+        classes = list()
+
+        for det in detections.data:
+            confidence, class_id = map(float, det[4:6].tolist())
+            class_id = int(class_id)
+
+            # filter for desired classes only
+            if self.classes[class_id] not in detect_classes:
+                continue
+
+            # filter for confidence threshold
+            if confidence > confidence_threshold:
+                xmin, ymin, xmax, ymax = map(int, det[:4].tolist())
+                boxes.append([xmin, ymin, xmax-xmin, ymax-ymin])
+                confidences.append(float(confidence))
+                class_ids.append(class_id)
+                classes.append(self.classes[class_id])
+
+        if len(classes) > 0:
+            out_frame = self.mark_results(out_frame, boxes, confidences, class_ids)
+        return out_frame, set(classes)
+
+        #if confidence > 0.6:  # Check confidence
+            #    cv2.rectangle(image, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+
+
+
+
+    def process_yolov4_detections(self, layer_outs, input_frame, detect_classes, confidence_threshold):
         out_frame = input_frame.copy()
         (H, W) = out_frame.shape[:2]
         boxes = list()

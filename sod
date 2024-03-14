@@ -4,7 +4,7 @@ import sys
 import base64
 import cv2
 from jinja2 import Environment
-import sod_detector_yolov4
+import sod_detectors
 import sod_html
 import sod_utils
 import sod_guard
@@ -31,7 +31,7 @@ def init_sod():
     should_by_showed = sod_utils.can_by_showed() and sod_settings.st.show_image
     if should_by_showed:
         sod_utils.debug(f"Camera pictures window will be open.", "stdout")
-    detector = sod_detector_yolov4.Yolov4(sod_settings.st)
+    detector = sod_detectors.Yolov4(sod_settings.st)
     sod_guard.init_camera_definitions(sod_settings.st)
     return detector,should_by_showed
 

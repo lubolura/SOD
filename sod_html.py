@@ -65,13 +65,13 @@ HTML_SOD_MAIN = """
           {% endif %}
                    <div class = "w3-cell w3-padding w3-card  w3-center">   
                       <div class = "w3-row">   
-                      
-                          <h1>
-                              {{frame['camera_name']}}
-                          </h1>
-                          <div class = "frame_datetime">
-                              {{frame['frame_datetime']}}
-                          </div>
+                         
+                              <h1  >
+                                  {{frame['camera_name']}}
+                                  <h5 class = "frame_datetime">
+                                      {{frame['frame_datetime']}}
+                                  </h5>
+                              </h1>
                           
                       </div>
                       <div class = "w3-row">   
