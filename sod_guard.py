@@ -182,7 +182,7 @@ def guard(st,detector,should_by_showed):
             if len(cam["detect_classes_actual"]) > 0:
 
                 # request to detect someting
-                detected_classes,frame_with_detections, farme_with_detections_and_regions = detector.Detect(cam = cam)
+                detected_classes,frame_with_detections, farme_with_detections_and_regions = detector.Detect(cam = cam,model_type = 'yolov4')
 
                 if len(detected_classes) > 0 :
                     # time for email ?
