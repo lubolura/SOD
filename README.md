@@ -17,7 +17,16 @@ config_path: /usr/share/sod/yolov4/yolov4.cfg
 
 classes_path: /usr/share/sod/coco.names.80
 
-It is also necessary to have Python3 installed with the required libraries.
+in the case of using the yolov8 model:
+for n model:
+https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.pt"
+model_yolov8_path: /usr/share/sod/yolov8/yolov8n.pt
+or possibly s, m, l model models - see config
+
+
+. It is also necessary to have Python3 installed with the required libraries.
+If the yolov8 model is also used - it is an ultralytics module
+
 
 Before installation, it is necessary to configure/edit the file
 
@@ -55,7 +64,15 @@ config_path: /usr/share/sod/yolov4/yolov4.cfg
 
 classes_path: /usr/share/sod/coco.names.80
 
+v pripade pouzitia modelu yolov8 :
+pre n model :
+https://github.com/ultralytics/assets/releases/download/v8.1.0/yolov8n.pt"
+model_yolov8_path: /usr/share/sod/yolov8/yolov8n.pt
+alebo popripade s,m,l verie modelov modely - vid config
+
+
 . Taktiez je potrebne mat nainstalovany Python s pozadovanymi kniznicami.
+V pripade ze sa pouzije aj model yolov8 - je to modul ultralytics
 
 Pred instalaciou je potrebne nakonfigurovat/zeditovat subor 
 sod.cfg a spravne nastavit jednotlive polozky - vid komentar v subore sod.cfg. 

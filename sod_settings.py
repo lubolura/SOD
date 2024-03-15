@@ -69,6 +69,11 @@ class Settings:
         processing_picture_size = sod_utils.get_from_config(config, section, "processing_picture_size", required=False, default="600,400")
         self.processing_picture_size = [int(x) for x in processing_picture_size.split(',')]
 
+        self.model_yolov8_path = sod_utils.get_from_config(config, section, "model_yolov8_path", required=False,
+                                                         default = "/usr/share/sod/yolov8/yolov8n.pt")
+        self.detector = sod_utils.get_from_config(config, section, "detector", required=False,
+                                                         default = "yolov8")
+
 
         section = "WebClient"
         self.cameras_in_row = sod_utils.get_int_from_config(config, section, "cameras_in_row",required=False, default=1)

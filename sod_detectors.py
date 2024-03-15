@@ -19,9 +19,11 @@ class Yolo:
     def __init__(self,st,color = (255, 0, 0)):
         self.weights = st.darknet_weights  # loading weights
         self.cfg = st.darknet_config  # loading cfg file
-        self.detector = 'yolov8'
-        self.init_yolov4(st)
-        self.init_yolov8(st)
+        self.detector = st.detector
+        if self.detector == 'yolov8':
+            self.init_yolov8(st)
+        else:
+            self.init_yolov4(st)
         self.color = color
         if not os.path.isfile(st.darknet_classes):
             sod_utils.debug("Unable to open {:s}.\n".format(st.darknet_classes),"stderr")
@@ -37,20 +39,24 @@ class Yolo:
         self.yolov4_size = st.darknet_size
 
     def init_yolov8(self,st):
-        self.yolov8 = YOLO("yolov8n.pt")
+        self.yolov8 = YOLO(st.model_yolov8_path)
 
 
 
     def Detect(self,cam):
         try:
+
+            detected_classes = set()
+            frame_with_detection = None
+            frame_with_detections_and_regions = None
+
             regions = cam["regions"]
             # do it with black-out masks
             masked_image = self.mask_regions(cam["resized_frame"].copy(),regions,(0,0,0),1)
 
             if self.detector == 'yolov8':
                 yolov8_detections = self.yolov8.predict(masked_image)
-                if len(yolov8_detections[0].boxes) > 0 :
-                    frame_with_detection,detected_classes = self.process_detections(yolov8_detections, cam["resized_frame"],
+                frame_with_detection,detected_classes = self.process_detections(yolov8_detections, cam["resized_frame"],
                                                                                        cam["detect_classes_actual"],
                                                                                        cam["confidence_threshold"])
             else:
@@ -60,6 +66,7 @@ class Yolo:
                 frame_with_detection,detected_classes = self.process_detections(yolov4_detections, cam["resized_frame"],
                                                                                        cam["detect_classes_actual"],
                                                                                        cam["confidence_threshold"])
+
 
             frame_with_detections_and_regions = self.mask_regions(frame_with_detection,regions,(100,100,100),0.25)
             return detected_classes, frame_with_detection,frame_with_detections_and_regions
@@ -100,23 +107,23 @@ class Yolo:
         confidences = list()
         class_ids = list()
         classes = list()
-        if self.detector == 'yolov4':
+        if self.detector == 'yolov8':
+            _detections = detections[0].boxes.data
+        else:
             _detections = []
             for _det in detections:
                 for __det in _det:
                  _detections.append(__det)
-        else:
-            _detections = detections[0].boxes.data
 
         for det in _detections:
 
-            if self.detector == 'yolov4':
+            if self.detector == 'yolov8':
+                confidence, class_id = map(float, det[4:6].tolist())
+                class_id = int(class_id)
+            else:
                 _scores = det[5:]
                 class_id = np.argmax(_scores)
                 confidence = _scores[class_id]
-            else:
-                confidence, class_id = map(float, det[4:6].tolist())
-                class_id = int(class_id)
 
             # filter for desired classes only
             if self.classes[class_id] not in detect_classes:
@@ -124,15 +131,15 @@ class Yolo:
 
             # filter for confidence threshold
             if confidence > confidence_threshold:
-                if self.detector == 'yolov4':
+                if self.detector == 'yolov8':
+                    xmin, ymin, xmax, ymax = map(int, det[:4].tolist())
+                    width = xmax - xmin
+                    height = ymax - ymin
+                else:
                     box = det[0:4] * np.array([W, H, W, H])
                     (center_x, center_y, width, height) = box.astype("int")
                     xmin = int(center_x - (width / 2))
                     ymin = int(center_y - (height / 2))
-                else:
-                    xmin, ymin, xmax, ymax = map(int, det[:4].tolist())
-                    width = xmax - xmin
-                    height = ymax - ymin
 
                 boxes.append([xmin, ymin, width,height])
                 confidences.append(float(confidence))
