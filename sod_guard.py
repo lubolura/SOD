@@ -5,17 +5,38 @@ import numpy as np
 import cv2
 import sod_utils
 import sod_emails
+import threading
 
+
+# bufferless VideoCapture
+class VideoCapture:
+    def __init__(self, name):
+        self.cap = cv2.VideoCapture(name)
+        self.lock = threading.Lock()
+        self.t = threading.Thread(target=self._reader)
+        self.t.daemon = True
+        self.t.start()
+
+    # grab frames as soon as they are available
+    def _reader(self):
+        while True:
+            with self.lock:
+                ret = self.cap.grab()
+            time.sleep(1/100)
+            if not ret:
+                break
+
+    # retrieve latest frame
+    def read(self):
+        with self.lock:
+            _, frame = self.cap.retrieve()
+        return frame
 
 def get_sample_frame(cap):
     if cap is not None:
         try:
-            # remove buffer
-            ret = True
-            while(ret):
-                ret = cap.grab()
-
-            ret, frame = cap.read()
+            #ret, frame = cap.read()
+            frame = cap.read()
             return frame
         except Exception as e:
             sod_utils.debug(f"Cannot read camera : {e}", "stderr")
@@ -23,8 +44,8 @@ def get_sample_frame(cap):
 
 def soft_init_camera(cam):
     try:
-        cap = cv2.VideoCapture(cam["stream"])
-        cam["cap"] = cap
+        #cap = VideoCapture(cam["stream"])
+        cam["cap"] = VideoCapture(cam["stream"])
         sod_utils.debug(f"Camera {cam['name']} SOFT init", "stdout")
     except Exception as e:
         sod_utils.debug(f"Cannot SOFT init camera : {e}", "stderr")
@@ -70,8 +91,10 @@ def init_camera_definitions(st):
 def release_cameras(st):
     for cam in st.cams:
         if cam["cap"] is not None:
-            cam["cap"].release()
-            cam["cap"] = None
+            #cam["cap"].release()
+            #cam["cap"] = None
+            pass
+
 
 def handle_actual_classes(st,cam,detected_classes,remove_classes):
 
