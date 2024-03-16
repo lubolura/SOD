@@ -5,95 +5,11 @@ import numpy as np
 import cv2
 import sod_utils
 import sod_emails
-import threading
+import sod_camera_utils
+
 
 
 # bufferless VideoCapture
-class VideoCapture:
-    def __init__(self, name):
-        self.cap = cv2.VideoCapture(name)
-        self.lock = threading.Lock()
-        self.t = threading.Thread(target=self._reader)
-        self.t.daemon = True
-        self.t.start()
-
-    # grab frames as soon as they are available
-    def _reader(self):
-        while True:
-            with self.lock:
-                ret = self.cap.grab()
-            time.sleep(1/100)
-            if not ret:
-                break
-
-    # retrieve latest frame
-    def read(self):
-        with self.lock:
-            _, frame = self.cap.retrieve()
-        return frame
-
-def get_sample_frame(cap):
-    if cap is not None:
-        try:
-            #ret, frame = cap.read()
-            frame = cap.read()
-            return frame
-        except Exception as e:
-            sod_utils.debug(f"Cannot read camera : {e}", "stderr")
-    return None
-
-def soft_init_camera(cam):
-    try:
-        #cap = VideoCapture(cam["stream"])
-        cam["cap"] = VideoCapture(cam["stream"])
-        sod_utils.debug(f"Camera {cam['name']} SOFT init", "stdout")
-    except Exception as e:
-        sod_utils.debug(f"Cannot SOFT init camera : {e}", "stderr")
-        cam["cap"] = None
-
-def init_camera(cam):
-    try:
-        soft_init_camera(cam)
-        cam["last_sent_email_time"] = None
-        cam["detect_classes_actual"] = cam["detect_classes"].copy()
-        cam["classes_timeouts"] = {_class: time.time() for _class in cam["detect_classes"]}
-        sod_utils.debug(f"Camera {cam['name']} init", "stdout")
-        cam["camera_is_ok"] = False
-        #cam["camera_err_cnt"] = 0
-        cam["detections"] = 0
-    except Exception as e:
-        sod_utils.debug(f"Cannot init camera : {e}", "stderr")
-        cam["cap"] = None
-        cam["last_sent_email_time"] = None
-        cam["detect_classes_actual"] = []
-        cam["classes_timeouts"] = {}
-        cam["camera_is_ok"] = False
-        #cam["camera_err_cnt"] = 0
-        cam["detections"] = 0
-    sod_utils.debug(f"Camera {cam['name']} - Actuals : {cam['detect_classes_actual']}", "stdout")
-
-
-
-def init_camera_definitions(st):
-    for cam in st.cams:
-        cam["cap"] = None
-        cam["last_sent_email_time"] = None
-        cam["detect_classes_actual"] = []
-        cam["classes_timeouts"] = {}
-        cam["camera_is_ok"] = False
-        cam["camera_err_cnt"] = 0
-        cam["detections"] = 0
-        cam["count_to_fire_send_emails_when_camera_lost"] = 0
-        cam["frame_datetime"] = "-"
-        cam["farme_with_detections_and_regions"] = None
-        cam["farme_with_detections_and_regions_for_web"] = None
-
-def release_cameras(st):
-    for cam in st.cams:
-        if cam["cap"] is not None:
-            #cam["cap"].release()
-            #cam["cap"] = None
-            pass
 
 
 def handle_actual_classes(st,cam,detected_classes,remove_classes):
@@ -213,15 +129,15 @@ def guard(st,detector,should_by_showed):
     for cam in st.cams:
 
         if cam["camera_is_ok"] == False:
-            init_camera(cam)
+            sod_camera_utils.init_camera(cam)
 
         if cam["cap"] is not None:
-            frame = get_sample_frame(cam["cap"])
+            frame = sod_camera_utils.get_sample_frame(cam["cap"])
 
 
             if not set_camera_state(st,cam, frame):
                 # camera is out of order
-                soft_init_camera(cam)
+                sod_camera_utils.soft_init_camera(cam)
                 cam["camera_err_cnt"] = cam["camera_err_cnt"] + 1
                 mark_camera_error(cam)
             else:
