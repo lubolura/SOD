@@ -55,7 +55,7 @@ class Yolo:
             masked_image = self.mask_regions(cam["resized_frame"].copy(),regions,(0,0,0),1)
 
             if self.detector == 'yolov8':
-                yolov8_detections = self.yolov8.predict(masked_image)
+                yolov8_detections = self.yolov8.predict(masked_image, verbose=False)
                 frame_with_detection,detected_classes = self.process_detections(yolov8_detections, cam["resized_frame"],
                                                                                        cam["detect_classes_actual"],
                                                                                        cam["confidence_threshold"])

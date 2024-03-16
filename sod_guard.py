@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import time
+import numpy as np
 import cv2
 import sod_utils
 import sod_emails
@@ -9,10 +10,11 @@ def get_sample_frame(cap):
     if cap is not None:
         try:
             ret, frame = cap.read()
-            return frame
+            camtime = cap.get(cv2.CAP_PROP_POS_MSEC)
+            return frame,camtime
         except Exception as e:
             sod_utils.debug(f"Cannot read camera : {e}", "stderr")
-    return None
+    return None,None
 
 def init_camera(cam):
     try:
@@ -23,6 +25,7 @@ def init_camera(cam):
         cam["classes_timeouts"] = {_class: time.time() for _class in cam["detect_classes"]}
         sod_utils.debug(f"Camera {cam['name']} init", "stdout")
         cam["camera_is_ok"] = False
+        #cam["camera_err_cnt"] = 0
         cam["detections"] = 0
     except Exception as e:
         sod_utils.debug(f"Cannot init camera : {e}", "stderr")
@@ -31,6 +34,7 @@ def init_camera(cam):
         cam["detect_classes_actual"] = []
         cam["classes_timeouts"] = {}
         cam["camera_is_ok"] = False
+        #cam["camera_err_cnt"] = 0
         cam["detections"] = 0
     sod_utils.debug(f"Camera {cam['name']} - Actuals : {cam['detect_classes_actual']}", "stdout")
 
@@ -50,10 +54,12 @@ def init_camera_definitions(st):
         cam["detect_classes_actual"] = []
         cam["classes_timeouts"] = {}
         cam["camera_is_ok"] = False
+        cam["camera_err_cnt"] = 0
         cam["detections"] = 0
         cam["count_to_fire_send_emails_when_camera_lost"] = 0
-        cam["frame_datetime"] = None
-
+        cam["frame_datetime"] = "-"
+        cam["farme_with_detections_and_regions"] = None
+        cam["farme_with_detections_and_regions_for_web"] = None
 
 def release_cameras(st):
     for cam in st.cams:
@@ -151,6 +157,17 @@ def handle_positive_emails(st,email_subj, email_body, cam, out_img):
 
 #web_frame = {}
 
+def mark_camera_error(cam):
+    if isinstance(cam.get("farme_with_detections_and_regions", None),(np.ndarray)):
+        cam["farme_with_detections_and_regions_for_web"] = cam["farme_with_detections_and_regions"].copy()
+        text = f"LOST SIGNAL (since {cam["frame_datetime"]} , errs: {cam["camera_err_cnt"]}) "
+        cv2.putText(
+            cam["farme_with_detections_and_regions_for_web"], text, (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4,(255, 0, 0) , 1
+        )
+        print(text)
+
+
+
 def guard(st,detector,should_by_showed):
 
     ret = False
@@ -161,42 +178,45 @@ def guard(st,detector,should_by_showed):
             init_camera(cam)
 
         if cam["cap"] is not None:
-
-            frame = get_sample_frame(cam["cap"])
+            frame,camtime = get_sample_frame(cam["cap"])
 
 
             if not set_camera_state(st,cam, frame):
                 # camera is out of order
                 soft_init_camera(cam)
-                continue
+                cam["camera_err_cnt"] = cam["camera_err_cnt"] + 1
+                mark_camera_error(cam)
+            else:
+                # resize - to process same size as regions definitions are
+                frame = cv2.resize(frame, st.processing_picture_size)
+                #unmasked_frame[cam["name"]] = frame.copy()
+                cam["resized_frame"] = frame
+                cam["frame_datetime"] = sod_utils.get_time()
+                cam["camera_err_cnt"] = 0
 
-            # resize - to process same size as regions definitions are
-            frame = cv2.resize(frame, st.processing_picture_size)
-            #unmasked_frame[cam["name"]] = frame.copy()
-            cam["resized_frame"] = frame
-            cam["frame_datetime"] = sod_utils.get_time()
+                # frame is ok, camera is ok, lets detect
+                detected_classes = []
+                remove_classes = False
+                if len(cam["detect_classes_actual"]) > 0:
 
-            # frame is ok, camera is ok, lets detect
-            detected_classes = []
-            remove_classes = False
-            if len(cam["detect_classes_actual"]) > 0:
+                    # request to detect someting
+                    detected_classes,frame_with_detections, farme_with_detections_and_regions = detector.Detect(cam = cam)
 
-                # request to detect someting
-                detected_classes,frame_with_detections, farme_with_detections_and_regions = detector.Detect(cam = cam)
+                    if len(detected_classes) > 0 :
+                        # time for email ?
+                        msg = f"Detected : {detected_classes}"
+                        sod_utils.debug(msg, "stdout")
+                        subj = f" {sod_utils.get_time()} : {cam['name']} detected class."
+                        remove_classes = handle_positive_emails(st, subj, msg, cam, frame_with_detections)
 
-                if len(detected_classes) > 0 :
-                    # time for email ?
-                    msg = f"Detected : {detected_classes}"
-                    sod_utils.debug(msg, "stdout")
-                    subj = f" {sod_utils.get_time()} : {cam['name']} detected class."
-                    remove_classes = handle_positive_emails(st, subj, msg, cam, frame_with_detections)
+                    if should_by_showed:
+                        cv2.imshow("Analyzed picture", farme_with_detections_and_regions)
+                        ret = True
 
-                if should_by_showed:
-                    cv2.imshow("Analyzed picture", farme_with_detections_and_regions)
-                    ret = True
+                    cam["farme_with_detections_and_regions"] = farme_with_detections_and_regions
+                    cam["farme_with_detections_and_regions_for_web"] = farme_with_detections_and_regions.copy()
 
-                cam["farme_with_detections_and_regions"] = farme_with_detections_and_regions
+                # filter do not detect/send same calssses repeatly within certain time
+                handle_actual_classes(st, cam, detected_classes, remove_classes)
 
-            # filter do not detect/send same calssses repeatly within certain time
-            handle_actual_classes(st, cam, detected_classes, remove_classes)
     return ret

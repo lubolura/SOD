@@ -12,6 +12,8 @@ from configparser import NoOptionError
 def get_time():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+
+
 def debug(message, pipe="stdout"):
     _time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if pipe == "stderr":
