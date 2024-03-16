@@ -160,11 +160,20 @@ def handle_positive_emails(st,email_subj, email_body, cam, out_img):
 def mark_camera_error(cam):
     if isinstance(cam.get("farme_with_detections_and_regions", None),(np.ndarray)):
         cam["farme_with_detections_and_regions_for_web"] = cam["farme_with_detections_and_regions"].copy()
-        text = f"LOST SIGNAL (since {cam['frame_datetime']} , errs: {cam['camera_err_cnt']}) "
+        text = f"LOST SIGNAL (errs: {cam['camera_err_cnt']}) "
         cv2.putText(
-            cam["farme_with_detections_and_regions_for_web"], text, (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4,(255, 0, 0) , 1
+            cam["farme_with_detections_and_regions_for_web"], text, (30, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.5,(0,255, 204) , 1
         )
-        print(text)
+        #print(text)
+
+
+def mark_camera_ok(cam):
+    if isinstance(cam.get("resized_frame", None),(np.ndarray)):
+        text = f"{cam['frame_datetime']}"
+        cv2.putText(
+            cam["resized_frame"], text, (30, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
+            (0, 255,  0), 1
+        )
 
 
 
@@ -193,6 +202,7 @@ def guard(st,detector,should_by_showed):
                 cam["resized_frame"] = frame
                 cam["frame_datetime"] = sod_utils.get_time()
                 cam["camera_err_cnt"] = 0
+                mark_camera_ok(cam)
 
                 # frame is ok, camera is ok, lets detect
                 detected_classes = []
