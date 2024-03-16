@@ -68,8 +68,8 @@ HTML_SOD_MAIN = """
                          
                               <h1  >
                                   {{frame['camera_name']}}
-                                  <h5 class = "frame_datetime">
-                                      {{frame['frame_datetime']}}
+                                  <h5 class = "datetimes">
+                                      SOD {{frame['response_datetime']}} / FRAME {{frame['frame_datetime']}}
                                   </h5>
                               </h1>
                           
@@ -92,7 +92,7 @@ HTML_SOD_MAIN = """
 </body>
 <script>
 const visible_frames = document.getElementsByClassName("visible_frame");
-const frame_datetimes = document.getElementsByClassName("frame_datetime");
+const datetimes = document.getElementsByClassName("datetimes");
 async function fetchFrame(camera_name) {
   const res = await fetch('/get_frame?camera_name='+camera_name);
   const data = await res.json();
@@ -104,7 +104,7 @@ function refreshFrames() {
     for (let i = 0; i < visible_frames.length; i++) {
         fetchFrame(visible_frames[i].id).then(data => {
                   visible_frames[i].src="data:image/jpeg;base64, " + data.frame ;
-                  frame_datetimes[i].innerText = data.frame_datetime ;  
+                  datetimes[i].innerText = "SOD "+data.response_datetime + " / FRAME " + data.frame_datetime;  
                 }, console.error);
     }
 

@@ -6,20 +6,33 @@ import cv2
 import sod_utils
 import sod_emails
 
+
 def get_sample_frame(cap):
     if cap is not None:
         try:
+            # remove buffer
+            ret = True
+            while(ret):
+                ret = cap.grab()
+
             ret, frame = cap.read()
-            camtime = cap.get(cv2.CAP_PROP_POS_MSEC)
-            return frame,camtime
+            return frame
         except Exception as e:
             sod_utils.debug(f"Cannot read camera : {e}", "stderr")
-    return None,None
+    return None
 
-def init_camera(cam):
+def soft_init_camera(cam):
     try:
         cap = cv2.VideoCapture(cam["stream"])
         cam["cap"] = cap
+        sod_utils.debug(f"Camera {cam['name']} SOFT init", "stdout")
+    except Exception as e:
+        sod_utils.debug(f"Cannot SOFT init camera : {e}", "stderr")
+        cam["cap"] = None
+
+def init_camera(cam):
+    try:
+        soft_init_camera(cam)
         cam["last_sent_email_time"] = None
         cam["detect_classes_actual"] = cam["detect_classes"].copy()
         cam["classes_timeouts"] = {_class: time.time() for _class in cam["detect_classes"]}
@@ -38,13 +51,6 @@ def init_camera(cam):
         cam["detections"] = 0
     sod_utils.debug(f"Camera {cam['name']} - Actuals : {cam['detect_classes_actual']}", "stdout")
 
-
-def soft_init_camera(cam):
-    try:
-        cap = cv2.VideoCapture(cam["stream"])
-        sod_utils.debug(f"Camera {cam['name']} SOFT init", "stdout")
-    except Exception as e:
-        sod_utils.debug(f"Cannot SOFT init camera : {e}", "stderr")
 
 
 def init_camera_definitions(st):
@@ -187,7 +193,7 @@ def guard(st,detector,should_by_showed):
             init_camera(cam)
 
         if cam["cap"] is not None:
-            frame,camtime = get_sample_frame(cam["cap"])
+            frame = get_sample_frame(cam["cap"])
 
 
             if not set_camera_state(st,cam, frame):
