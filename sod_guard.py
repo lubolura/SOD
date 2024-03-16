@@ -160,7 +160,7 @@ def handle_positive_emails(st,email_subj, email_body, cam, out_img):
 def mark_camera_error(cam):
     if isinstance(cam.get("farme_with_detections_and_regions", None),(np.ndarray)):
         cam["farme_with_detections_and_regions_for_web"] = cam["farme_with_detections_and_regions"].copy()
-        text = f"LOST SIGNAL (since {cam["frame_datetime"]} , errs: {cam["camera_err_cnt"]}) "
+        text = f"LOST SIGNAL (since {cam['frame_datetime']} , errs: {cam['camera_err_cnt']}) "
         cv2.putText(
             cam["farme_with_detections_and_regions_for_web"], text, (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.4,(255, 0, 0) , 1
         )
