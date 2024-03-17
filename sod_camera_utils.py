@@ -3,6 +3,8 @@ import cv2
 import sod_utils
 import threading
 
+# DEAMON PROCSS TO READ CAMERAS STREAM
+# grams continously ane read returns last fresh image
 class VideoCapture:
     def __init__(self, cam):
         try:
@@ -22,11 +24,12 @@ class VideoCapture:
     def _reader(self):
         while True:
             with self.lock:
-                ret = self.cap.grab()
-            if ret:
-                self.grab_ok = True
-            else:
-                break
+                if self.cap != None:
+                    ret = self.cap.grab()
+                if ret:
+                    self.grab_ok = True
+                else:
+                    break
         time.sleep(1/100)
 
     # retrieve latest frame
@@ -39,11 +42,16 @@ class VideoCapture:
             else:
                 return None
 
+    def release(self):
+        with self.lock:
+            self.cap.release()
+            self.cap = None
+            self.grab_ok = False
+
 
 def get_sample_frame(cap):
     if cap is not None:
         try:
-            #ret, frame = cap.read()
             frame = cap.read()
             return frame
         except Exception as e:
@@ -51,7 +59,6 @@ def get_sample_frame(cap):
     return None
 
 def soft_init_camera(cam):
-        #cap = VideoCapture(cam["stream"])
         cap = VideoCapture(cam)
         if isinstance(cap, VideoCapture):
             if cap.init_ok :
@@ -95,6 +102,4 @@ def init_camera_definitions(st):
 def release_cameras(st):
     for cam in st.cams:
         if cam["cap"] is not None:
-            #cam["cap"].release()
-            #cam["cap"] = None
-            pass
+            cam["cap"].release()

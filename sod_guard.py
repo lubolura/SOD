@@ -8,10 +8,6 @@ import sod_emails
 import sod_camera_utils
 
 
-
-# bufferless VideoCapture
-
-
 def handle_actual_classes(st,cam,detected_classes,remove_classes):
 
     if (st.delay_to_ignore_same_class_detectection == 0):
