@@ -11,7 +11,7 @@
 
 HTML_HEADER = """
         <div class="w3-bar w3-theme-d1">
-          <div class="w3-bar-item w3-hover-blue"> S O D </div>
+          <div class="guard_state w3-bar-item w3-hover-blue"> S O D </div>
         </div> 
 
 """
@@ -57,6 +57,7 @@ HTML_SOD_MAIN = """
 </head>
 <body>
   <div  class="w3-theme-l4">
+     
 """ + HTML_HEADER  + """  
      {% for frame in frames %}          
           {% if (loop.index+1)%cameras_in_row == 0 %}
@@ -93,6 +94,7 @@ HTML_SOD_MAIN = """
 <script>
 const visible_frames = document.getElementsByClassName("visible_frame");
 const datetimes = document.getElementsByClassName("datetimes");
+const guard_state = document.getElementsByClassName("guard_state");
 async function fetchFrame(camera_name) {
   const res = await fetch('/get_frame?camera_name='+camera_name);
   const data = await res.json();
@@ -104,7 +106,8 @@ function refreshFrames() {
     for (let i = 0; i < visible_frames.length; i++) {
         fetchFrame(visible_frames[i].id).then(data => {
                   visible_frames[i].src="data:image/jpeg;base64, " + data.frame ;
-                  datetimes[i].innerText = "SOD "+data.response_datetime + " / FRAME " + data.frame_datetime;  
+                  datetimes[i].innerText = "SOD "+data.response_datetime + " / FRAME " + data.frame_datetime;
+                  guard_state[0].innerText = "S O D "+data.guard_state;
                 }, console.error);
     }
 
