@@ -9,9 +9,23 @@
 # http://jinja.pocoo.org/docs/templates/
 #
 
+SCRIPT_POST = """    
+async function postData(url = "", data = {}) {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(data)
+    });
+
+    return await response.json();
+}"""
+
+
 HTML_HEADER = """
         <div class="w3-bar w3-theme-d1">
-          <div class="guard_state w3-bar-item w3-hover-blue"> S O D </div>
+          <div class="w3-bar-item w3-hover-blue"> S O D </div>
         </div> 
 
 """
@@ -64,17 +78,24 @@ HTML_SOD_MAIN = """
           <br>
               <div class = "w3-cell-row w3-padding w3-container" >          
           {% endif %}
-                   <div class = "w3-cell w3-padding w3-card  w3-center">   
-                      <div class = "w3-row">   
-                         
-                              <h1  >
-                                  {{frame['camera_name']}}
-                                  <h5 class = "datetimes">
-                                      SOD {{frame['response_datetime']}} / FRAME {{frame['frame_datetime']}}
-                                  </h5>
-                              </h1>
-                          
+                   <div class = "w3-cell w3-padding w3-card  w3-center">
+                   
+                      
+                      <div class = "w3-row">                            
+                                  <h3 class = "w3-row">                            
+                                        {{frame['camera_name']}}
+                                  </h3>
+                                  <div class = "w3-row">                            
+                                      <div class = "datetimes w3-col w3-center w3-padding-small s9">
+                                          SOD {{frame['response_datetime']}} / FRAME {{frame['frame_datetime']}} 
+                                      </div>
+                                      <div class = "w3-col w3-center s3">
+                                          <button class="guard_state w3-button" onclick="guard_state_click('{{frame['camera_name']}}')" >unknown</button>
+                                      </div>
+                                  </div>
                       </div>
+
+
                       <div class = "w3-row">   
                          <img class='visible_frame' id={{frame['camera_name']}} src="data:image/jpeg;base64, {{frame['frame']}}"></img>
                       </div>
@@ -94,12 +115,14 @@ HTML_SOD_MAIN = """
 <script>
 const visible_frames = document.getElementsByClassName("visible_frame");
 const datetimes = document.getElementsByClassName("datetimes");
-const guard_state = document.getElementsByClassName("guard_state");
+const guard_states = document.getElementsByClassName("guard_state");
 async function fetchFrame(camera_name) {
   const res = await fetch('/get_frame?camera_name='+camera_name);
   const data = await res.json();
   return data
 }
+
+""" + SCRIPT_POST + """
 
 function refreshFrames() {
 
@@ -107,33 +130,39 @@ function refreshFrames() {
         fetchFrame(visible_frames[i].id).then(data => {
                   visible_frames[i].src="data:image/jpeg;base64, " + data.frame ;
                   datetimes[i].innerText = "SOD "+data.response_datetime + " / FRAME " + data.frame_datetime;
-                  guard_state[0].innerText = "S O D "+data.guard_state;
+                  if (data.guard_state) {
+                        guard_states[i].innerText = "GUARDING";
+                        guard_states[i].class = "guard_state  w3-col w3-center s3 w3-red"
+                  } else {
+                        guard_states[i].innerText = "MONITORING";                        
+                        guard_states[i].class = "guard_state w3-col w3-center s3 w3-gray"
+                  }
                 }, console.error);
     }
 
     setTimeout(refreshFrames, {{refresh_rate*1000}});
 }
 
+
+function guard_state_click(camera_name) {
+    //     alert(camera_name)
+    postData("/toggle_guard_state?camera_name="+camera_name)
+            .then((response) => {
+                alert(response["message"]);
+                location.reload();
+            })
+            .catch((error) => {
+                alert(response["message"])
+            });
+         
+}
+
+
 refreshFrames()
 
 </script>
 </html>
 """
-
-
-SCRIPT_POST = """    
-async function postData(url = "", data = {}) {
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-    });
-
-    return await response.json();
-}"""
-
 
 HTML_SET_REGIONS = """
 <!DOCTYPE html>

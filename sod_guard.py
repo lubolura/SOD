@@ -154,11 +154,12 @@ def guard(st,detector,should_by_showed):
                     detected_classes,frame_with_detections, farme_with_detections_and_regions = detector.Detect(cam = cam)
 
                     if len(detected_classes) > 0 :
-                        # time for email ?
-                        msg = f"Detected : {detected_classes}"
-                        sod_utils.debug(msg, "stdout")
-                        subj = f" {sod_utils.get_time()} : {cam['name']} detected class."
-                        remove_classes = handle_positive_emails(st, subj, msg, cam, frame_with_detections)
+                        if cam["guard_state"]:
+                            # time for email ?
+                            msg = f"Detected : {detected_classes}"
+                            sod_utils.debug(msg, "stdout")
+                            subj = f" {sod_utils.get_time()} : {cam['name']} detected class."
+                            remove_classes = handle_positive_emails(st, subj, msg, cam, frame_with_detections)
 
                     if should_by_showed:
                         cv2.imshow("Analyzed picture", farme_with_detections_and_regions)

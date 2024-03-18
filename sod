@@ -56,6 +56,23 @@ def _guard(st,detector,should_by_showed):
     #time.sleep(st.delay_between_samples_secs)
 
 
+@app.route('/toggle_guard_state', methods=["POST"])
+def toggle_guard_state():
+    camera_name = request.args.get("camera_name", "undefined")
+
+    if camera_name == "undefined":
+        return Environment().from_string(sod_html.HTML_WAIT).render(msg=f"Unknown camera {camera_name}....")
+
+    for cam in sod_settings.st.cams:
+        if cam["name"] == camera_name:
+            cam["guard_state"] = not cam["guard_state"]
+            break
+
+    response = make_response(jsonify({"message": "OK.\n Guard state is changed  !"}), 200, )
+    response.headers["Content-Type"] = "application/json"
+    return response
+
+
 @app.route('/set_regions', methods=["GET","POST"])
 def set_regions():
     camera_name = request.args.get("camera_name", "undefined")
@@ -108,7 +125,7 @@ def _get_frame(cam):
     try:
         cnt = cv2.imencode('.jpg', cam["farme_with_detections_and_regions_for_web"])[1]
         return {"frame": base64.b64encode(cnt).decode(), "camera_name": cam["name"],"frame_datetime" : cam["frame_datetime"],
-                "response_datetime": sod_utils.get_time(), "guard_state" :str(random()*10)}
+                "response_datetime": sod_utils.get_time(), "guard_state" :cam["guard_state"]}
     except Exception as e:
         return {"frame": None, "camera_name": cam["name"],"frame_datetime" : "","response_datetime": sod_utils.get_time(), "guard_state" :"UNKNOWN"}
 

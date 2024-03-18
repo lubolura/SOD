@@ -98,6 +98,7 @@ def init_camera_definitions(st):
         cam["frame_datetime"] = "-"
         cam["farme_with_detections_and_regions"] = None
         cam["farme_with_detections_and_regions_for_web"] = None
+        cam["guard_state"] = True
 
 def release_cameras(st):
     for cam in st.cams:
