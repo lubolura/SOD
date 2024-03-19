@@ -26,6 +26,8 @@ async function postData(url = "", data = {}) {
 HTML_HEADER = """
         <div class="w3-bar w3-theme-d1">
           <div class="w3-bar-item w3-hover-blue"> S O D </div>
+          <button class="w3-bar-item w3-button w3-right" onclick="guard_state_all_click('on')" >Guard ON</button>
+          <button class="w3-bar-item w3-button w3-right" onclick="guard_state_all_click('off')" >Guard OFF</button>
         </div> 
 
 """
@@ -145,8 +147,18 @@ function refreshFrames() {
 
 
 function guard_state_click(camera_name) {
-    //     alert(camera_name)
     postData("/toggle_guard_state?camera_name="+camera_name)
+            .then((response) => {
+                alert(response["message"]);
+                location.reload();
+            })
+            .catch((error) => {
+                alert(response["message"])
+            });         
+}
+
+function guard_state_all_click(cmd) {
+    postData("/set_guard_state?set_state="+cmd)
             .then((response) => {
                 alert(response["message"]);
                 location.reload();
@@ -156,6 +168,7 @@ function guard_state_click(camera_name) {
             });
          
 }
+
 
 
 refreshFrames()

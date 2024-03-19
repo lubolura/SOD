@@ -56,6 +56,25 @@ def _guard(st,detector,should_by_showed):
     #time.sleep(st.delay_between_samples_secs)
 
 
+
+@app.route('/set_guard_state', methods=["POST"])
+def set_guard_state():
+    set_state = request.args.get("set_state", "undefined")
+
+    if set_state == "undefined":
+        return Environment().from_string(sod_html.HTML_WAIT).render(msg=f"Unknown set state {set_state}....")
+
+    for cam in sod_settings.st.cams:
+        if set_state == 'on' :
+            cam["guard_state"] = True
+        if set_state == 'off' :
+            cam["guard_state"] = False
+
+
+    response = make_response(jsonify({"message": "OK.\n Guard state are changed !"}), 200, )
+    response.headers["Content-Type"] = "application/json"
+    return response
+
 @app.route('/toggle_guard_state', methods=["POST"])
 def toggle_guard_state():
     camera_name = request.args.get("camera_name", "undefined")

@@ -165,6 +165,7 @@ def guard(st,detector,should_by_showed):
                 # filter do not detect/send same calssses repeatly within certain time
                 handle_actual_classes(st, cam, detected_classes, remove_classes)
 
+    #show all images as one big
     if should_by_showed:
         final_frame = None
         for cam in st.cams:
