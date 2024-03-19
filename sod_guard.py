@@ -120,8 +120,6 @@ def mark_camera_ok(cam):
 
 def guard(st,detector,should_by_showed):
 
-    ret = False
-
     for cam in st.cams:
 
         if cam["camera_is_ok"] == False:
@@ -161,14 +159,26 @@ def guard(st,detector,should_by_showed):
                             subj = f" {sod_utils.get_time()} : {cam['name']} detected class."
                             remove_classes = handle_positive_emails(st, subj, msg, cam, frame_with_detections)
 
-                    if should_by_showed:
-                        cv2.imshow("Analyzed picture", farme_with_detections_and_regions)
-                        ret = True
-
                     cam["farme_with_detections_and_regions"] = farme_with_detections_and_regions
                     cam["farme_with_detections_and_regions_for_web"] = farme_with_detections_and_regions.copy()
 
                 # filter do not detect/send same calssses repeatly within certain time
                 handle_actual_classes(st, cam, detected_classes, remove_classes)
 
-    return ret
+    if should_by_showed:
+        final_frame = None
+        for cam in st.cams:
+            if (not isinstance(cam["farme_with_detections_and_regions"],(np.ndarray))):
+                continue
+
+            if (not isinstance(final_frame,(np.ndarray))) :
+                final_frame =cam["farme_with_detections_and_regions"]
+                continue
+
+            final_frame = np.hstack((final_frame, cam["farme_with_detections_and_regions"]))
+
+        if (isinstance(final_frame,(np.ndarray))):
+            cv2.imshow("Analyzed picture", final_frame)
+            return True
+
+    return False
