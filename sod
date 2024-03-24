@@ -188,7 +188,7 @@ if __name__ == "__main__":
          scheduler.start()
 
 
-    app.run(host='0.0.0.0', port=5050)
+    app.run(host='0.0.0.0', port=sod_settings.st.web_port)
     deinit_sod(sod_settings.st, should_by_showed)
 
 

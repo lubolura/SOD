@@ -77,6 +77,7 @@ class Settings:
 
         section = "WebClient"
         self.cameras_in_row = sod_utils.get_int_from_config(config, section, "cameras_in_row",required=False, default=1)
+        self.web_port = sod_utils.get_int_from_config(config, section, "web_port",required=False, default=81)
 
 
         section = "Darknet"

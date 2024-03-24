@@ -48,6 +48,9 @@ systemctl status sod
 
 In case of problems, check the relevant log files - see their definitions in sod.cfg.
 
+Sometimes after installation, the program cannot start and says that there is a problem with python3 
+- in such a case, it helps to open the file /bin/sod with a text editor, add one CrLf and save changes.
+
 
 ----------------------------------------------------------------------------------------
 
@@ -90,3 +93,6 @@ Nasledne je mozne skontrolovat ci je proces spusteny, napr :
 systemctl status  sod
 
 V pripade vyskytu problemov skonttrolovat prislusne log fajly - vid ich definicie v sod.cfg.
+
+Niekedy po instalacii program nevie nabehnut a pise ze je problem s python3 
+- v takom pripade pomaha otvorit subor /bin/sod textovy editorom, pridat jeden CrLf a ulozit zmeny. 
