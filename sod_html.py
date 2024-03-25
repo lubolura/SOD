@@ -33,7 +33,7 @@ HTML_HEADER = """
 """
 HTML_FOOTER = """
         <div class="w3-bar w3-theme-d1">
-          <div class="w3-bar-item w3-hover-blue w3-right"> Simple Stream Object Detection </div>
+          <div class="w3-bar-item w3-hover-blue w3-right"> Simple camera frames object detection.</div>
         </div> 
 
 """
