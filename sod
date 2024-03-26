@@ -21,6 +21,15 @@ except Exception as e:
     sod_utils.debug(f"Cannot import module  {e} \n Try to use : sudo python3.10 -m pip install missing_module", "stderr")
     sys.exit(1)
 
+import logging
+
+
+class NoRunningFilter(logging.Filter):
+    def filter(self, record):
+        return not (record.msg.startswith('Execution of job') and ("skipped: maximum number of running instances reached" in record.msg))
+my_filter = NoRunningFilter()
+logging.getLogger("apscheduler.scheduler").addFilter(my_filter)
+
 
 REGIONS_COLOR = "rgba(164, 221, 249, 0.3)"
 sod_utils.log_running()
@@ -174,13 +183,13 @@ def main_page():
       return Environment().from_string(sod_html.HTML_WAIT).render(refresh_rate = refresh_rate,msg= "Connecting cameras ...")
 
 
+
 if __name__ == "__main__":
     sod_utils.log_running()
     detector,should_by_showed  = init_sod()
 
     #while(True):
     #     _guard(st,detector,should_by_showed)
-
 
     with app.app_context():
          scheduler = BackgroundScheduler()
