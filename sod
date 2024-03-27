@@ -2,6 +2,7 @@
 
 import sys
 import base64
+import datetime
 from random import random
 
 import cv2
@@ -16,7 +17,7 @@ import sod_camera_utils
 try:
     from flask import Flask, jsonify, render_template, request, make_response, redirect
     from apscheduler.schedulers.background import BackgroundScheduler
-    from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR,EVENT_JOB_ADDED
+    from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR,EVENT_JOB_ADDED,EVENT_JOB_SUBMITTED
 except Exception as e:
     sod_utils.debug(f"Cannot import module  {e} \n Try to use : sudo python3.10 -m pip install missing_module", "stderr")
     sys.exit(1)
@@ -29,6 +30,20 @@ class NoRunningFilter(logging.Filter):
         return not (record.msg.startswith('Execution of job') and ("skipped: maximum number of running instances reached" in record.msg))
 my_filter = NoRunningFilter()
 logging.getLogger("apscheduler.scheduler").addFilter(my_filter)
+
+def sod_guard_job_listener(event):
+    if event.exception:
+        sod_utils.debug(f'The job "{event.job_id}" crashed.',"stderr")
+    else:
+        if sod_settings.st.debug_logs:
+            sod_utils.debug(f'The job "{event.job_id}"  executed successfully.', "stdout")
+
+    #start job with delay
+    scheduler.add_job(_guard, args = [sod_settings.st,detector,should_by_showed],
+                           id='_sod_guard_job',
+                           next_run_time=datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+                                              seconds=sod_settings.st.delay_between_samples_secs)
+                      )
 
 
 REGIONS_COLOR = "rgba(164, 221, 249, 0.3)"
@@ -184,18 +199,17 @@ def main_page():
 
 
 
+
 if __name__ == "__main__":
     sod_utils.log_running()
     detector,should_by_showed  = init_sod()
 
-    #while(True):
-    #     _guard(st,detector,should_by_showed)
-
     with app.app_context():
          scheduler = BackgroundScheduler()
-         scheduler.add_job(_guard, args = [sod_settings.st,detector,should_by_showed],trigger = 'interval', seconds=sod_settings.st.delay_between_samples_secs)
+         scheduler.add_listener(sod_guard_job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR )
+         # start now
+         scheduler.add_job(_guard, args = [sod_settings.st,detector,should_by_showed],id='_sod_guard_job')
          scheduler.start()
-
 
     app.run(host='0.0.0.0', port=sod_settings.st.web_port)
     deinit_sod(sod_settings.st, should_by_showed)
