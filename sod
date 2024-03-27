@@ -3,7 +3,6 @@
 import sys
 import base64
 import datetime
-from random import random
 
 import cv2
 from jinja2 import Environment
@@ -41,7 +40,7 @@ def sod_guard_job_listener(event):
     #start job with delay
     scheduler.add_job(_guard, args = [sod_settings.st,detector,should_by_showed],
                            id='_sod_guard_job',
-                           next_run_time=datetime.datetime.now(datetime.UTC) + datetime.timedelta(
+                           next_run_time=datetime.datetime.now() + datetime.timedelta(
                                               seconds=sod_settings.st.delay_between_samples_secs)
                       )
 
